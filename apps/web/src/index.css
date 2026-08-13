@@ -1,4 +1,78 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
+/* Fuentes Locales WOFF2 — 100% Offline (Sin solicitudes externas a Google Fonts) */
+
+/* Barlow Condensed */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/barlow-condensed-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/barlow-condensed-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/barlow-condensed-800.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/barlow-condensed-900.woff2") format("woff2");
+}
+
+/* Inter */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/inter-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/inter-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/inter-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/inter-800.woff2") format("woff2");
+}
 
 @tailwind base;
 @tailwind components;
@@ -6,27 +80,32 @@
 
 @layer base {
   :root {
-    --color-brand-navy: #0B3156;
-    --color-brand-gold: #C3A55F;
-    --color-brand-coastal: #1677A6;
-    --color-brand-cream: #F6F0E4;
-    --color-brand-sand: #D9C79D;
+    --color-brand-navy: #0b3156;
+    --color-brand-gold: #c3a55f;
+    --color-brand-coastal: #1677a6;
+    --color-brand-cream: #f6f0e4;
+    --color-brand-sand: #d9c79d;
   }
 
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
     width: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden; /* Prohíbe scroll global accidental en tablets */
-    background-color: #F6F0E4;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #f6f0e4;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
   }
 
-  /* Cifras tabulares por defecto para números y montos */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
@@ -39,15 +118,15 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #EAE2D2;
+  background: #eae2d2;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C5BAA5;
+  background: #c5baa5;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0B3156;
+  background: #0b3156;
 }

@@ -1,4 +1,4 @@
-import type { PrintJob, PrintJobStatus } from '@huarique/domain';
+import type { PrintJob, PrintJobStatus } from "@huarique/domain";
 
 export interface PrinterBridgeConfig {
   supabaseUrl: string;
@@ -14,6 +14,8 @@ export interface PrinterBridgeConfig {
 export interface PrinterAdapter {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  print(job: PrintJob): Promise<{ success: boolean; error?: string; status: PrintJobStatus }>;
-  checkStatus(): Promise<'online' | 'offline' | 'paper_out' | 'unknown'>;
+  print(
+    job: PrintJob,
+  ): Promise<{ success: boolean; error?: string; status: PrintJobStatus }>;
+  checkStatus(): Promise<"online" | "offline" | "paper_out" | "unknown">;
 }

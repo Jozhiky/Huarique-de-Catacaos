@@ -1,14 +1,14 @@
-import React from 'react';
-import { Delete, Check } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import React from "react";
+import { Delete, Check } from "lucide-react";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export interface NumericKeypadProps {
   value: string;
   onChange: (newValue: string) => void;
   onSubmit?: () => void;
   maxLength?: number;
-  mode?: 'pin' | 'currency' | 'quantity';
+  mode?: "pin" | "currency" | "quantity";
   disabled?: boolean;
   className?: string;
 }
@@ -18,18 +18,18 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
   onChange,
   onSubmit,
   maxLength = 8,
-  mode = 'pin',
+  mode = "pin",
   disabled = false,
-  className
+  className,
 }) => {
   const handleDigit = (digit: string) => {
     if (disabled) return;
     if (value.length >= maxLength) return;
 
-    if (mode === 'currency' && digit === '.') {
-      if (value.includes('.')) return;
-      if (value === '') {
-        onChange('0.');
+    if (mode === "currency" && digit === ".") {
+      if (value.includes(".")) return;
+      if (value === "") {
+        onChange("0.");
         return;
       }
     }
@@ -46,22 +46,29 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
 
   const handleClear = () => {
     if (disabled) return;
-    onChange('');
+    onChange("");
   };
 
   const keys = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-    [mode === 'currency' ? '.' : 'C', '0', 'DEL']
+    ["1", "2", "3"],
+    ["4", "5", "6"],
+    ["7", "8", "9"],
+    [mode === "currency" ? "." : "C", "0", "DEL"],
   ];
 
   return (
-    <div className={twMerge(clsx('flex flex-col gap-2.5 max-w-[340px] w-full select-none', className))}>
+    <div
+      className={twMerge(
+        clsx(
+          "flex flex-col gap-2.5 max-w-[340px] w-full select-none",
+          className,
+        ),
+      )}
+    >
       {keys.map((row, rowIndex) => (
         <div key={rowIndex} className="grid grid-cols-3 gap-2.5">
           {row.map((key) => {
-            if (key === 'DEL') {
+            if (key === "DEL") {
               return (
                 <button
                   key={key}
@@ -76,7 +83,7 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
               );
             }
 
-            if (key === 'C') {
+            if (key === "C") {
               return (
                 <button
                   key={key}

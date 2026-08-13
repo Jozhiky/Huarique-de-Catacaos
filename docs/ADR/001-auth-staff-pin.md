@@ -1,12 +1,15 @@
 # ADR 001: Arquitectura de Autenticación, Roles y Acceso con PIN de Personal
 
 ## Estado
+
 Aprobado
 
 ## Contexto
+
 El Huarique de Catacaos opera con 3 salones, 80 mesas y tablets Android horizontales compartidas por el personal de sala. El flujo de servicio exige cambios rápidos de usuario entre mozos sin comprometer la seguridad ni exponer contraseñas en texto plano. Se requiere un modelo de autenticación unificado en Supabase Auth con 4 roles bien diferenciados (`admin`, `cashier`, `waiter`, `printer_agent`), protección contra ataques de fuerza bruta, bloqueo por inactividad y un mecanismo canónico para la desactivación inmediata de personal.
 
 ## Decisión
+
 1. **Identidad Unificada:**
    - Todos los usuarios humanos (dueña, cajero, mozos) y agentes de impresión pertenecen a `auth.users` en Supabase Auth.
    - Dueña y Cajero acceden con `email` + `password` fuerte.
@@ -16,7 +19,7 @@ El Huarique de Catacaos opera con 3 salones, 80 mesas y tablets Android horizont
    - El PIN **no se almacena en `public.profiles`** ni se valida mediante RPCs públicas abiertas.
 3. **Flujo de Acceso para Mozos:**
    `Tablet Mozo` $\to$ `Edge Function segura login-staff` $\to$ `Supabase Auth signInWithPassword` $\to$ `Sesión oficial Supabase`.
-   - La Edge Function aplica rate limiting (5 intentos fallidos = 15 min de bloqueo en BD), valida `profiles.active = true`, ejecuta `signInWithPassword` internamente y devuelve mensajes genéricos de error (*"Credenciales inválidas"*).
+   - La Edge Function aplica rate limiting (5 intentos fallidos = 15 min de bloqueo en BD), valida `profiles.active = true`, ejecuta `signInWithPassword` internamente y devuelve mensajes genéricos de error (_"Credenciales inválidas"_).
    - No se generan ni firman JWTs artesanales en PL/pgSQL.
    - La clave `service_role` nunca se expone al cliente frontend.
 4. **Claims JWT y Roles:**
@@ -35,6 +38,7 @@ El Huarique de Catacaos opera con 3 salones, 80 mesas y tablets Android horizont
    - Cierre/bloqueo de pantalla por inactividad a los 90 segundos de inoperancia táctil, retornando la tablet al teclado numérico de PIN.
 
 ## Consecuencias
+
 - Máxima seguridad cumpliendo estándares enterprise y protegiendo credenciales.
 - Compatibilidad nativa con los planes Free/Pro de Supabase mediante Custom Access Token Hook y lógica atómica en base de datos.
 - Trazabilidad y auditoría completa de cada acción por usuario y rol.

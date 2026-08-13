@@ -1,9 +1,11 @@
 # Regla de Base de Datos y Seguridad: El Huarique de Catacaos
 
 ## Referencia
+
 Esta regla implementa los estándares de seguridad, transaccionalidad y RLS descritos en `docs/PROJECT_SPEC.md` (Secciones 11 y 12) y `docs/ADR/001-auth-staff-pin.md`.
 
 ## Estándares de Seguridad en Base de Datos
+
 1. **Row Level Security (RLS) Obligatorio:**
    - Toda tabla creada en el esquema `public` debe ejecutar explícitamente `ALTER TABLE public.<tabla> ENABLE ROW LEVEL SECURITY;` y `FORCE ROW LEVEL SECURITY`.
    - La existencia de políticas no exime de la ejecución explícita de `ENABLE RLS`.

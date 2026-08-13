@@ -1,0 +1,51 @@
+name: CI — Integración Continua y Calidad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Verificación de Calidad y Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm determinista
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+
+      - name: Configurar Node.js 24 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: 'pnpm'
+
+      - name: Instalar dependencias con lockfile congelado
+        run: pnpm install --frozen-lockfile
+
+      - name: 1. Verificación de Formato (Prettier)
+        run: pnpm format
+
+      - name: 2. Análisis Estático de Código (ESLint)
+        run: pnpm lint
+
+      - name: 3. Comprobación Estricta de Tipos (TypeScript)
+        run: pnpm typecheck
+
+      - name: 4. Pruebas Unitarias y de Componentes (Vitest)
+        run: pnpm test
+
+      - name: Instalar binarios de Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 5. Pruebas E2E de Tablet (Playwright 1280x800 y 1024x600)
+        run: pnpm test:e2e
+
+      - name: 6. Compilación de Producción
+        run: pnpm build

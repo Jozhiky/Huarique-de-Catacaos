@@ -3,6 +3,7 @@
 Este workflow valida que el proyecto cumple con la **Definición de Terminado (DoD)** antes de solicitar revisión o dar por concluida una fase.
 
 ## Checklist de Verificación
+
 - [ ] **Typecheck:** `pnpm typecheck` termina con código de salida 0 y cero errores.
 - [ ] **Linter:** `pnpm lint` pasa limpiamente sin advertencias ni errores.
 - [ ] **Pruebas Automatizadas:** `pnpm test` ejecuta todos los tests con 100% de éxito.

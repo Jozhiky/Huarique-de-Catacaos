@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./apps/web/src/test/setup.ts'],
+    exclude: ['**/node_modules/**', '**/e2e/**', '**/dist/**'],
     alias: {
       '@huarique/domain': path.resolve(__dirname, './packages/domain/src'),
       '@huarique/ui': path.resolve(__dirname, './packages/ui/src'),

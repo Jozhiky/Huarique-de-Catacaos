@@ -3,6 +3,7 @@
 Este workflow define los pasos sistemáticos para implementar una fase en Antigravity para **El Huarique de Catacaos**:
 
 ## Pasos de Ejecución
+
 1. **Lectura y Validación de Requisitos:**
    - Leer `docs/PROJECT_SPEC.md` y la sección correspondiente a la fase.
    - Revisar las reglas en `.agents/rules/` y ADRs relacionados.

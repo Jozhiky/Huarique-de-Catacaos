@@ -3,37 +3,37 @@
  * Entidades y tipos de dominio estrictos para El Huarique de Catacaos
  */
 
-export type StaffRole = 'admin' | 'cashier' | 'waiter' | 'printer_agent';
+export type StaffRole = "admin" | "cashier" | "waiter" | "printer_agent";
 
 export type TableStatus =
-  | 'free'
-  | 'occupied'
-  | 'waiting_kitchen'
-  | 'served'
-  | 'waiting_payment'
-  | 'blocked';
+  | "free"
+  | "occupied"
+  | "waiting_kitchen"
+  | "served"
+  | "waiting_payment"
+  | "blocked";
 
 export type OrderStatus =
-  | 'draft'
-  | 'submitted'
-  | 'in_preparation'
-  | 'served'
-  | 'payment_pending'
-  | 'paid'
-  | 'cancelled';
+  | "draft"
+  | "submitted"
+  | "in_preparation"
+  | "served"
+  | "payment_pending"
+  | "paid"
+  | "cancelled";
 
 export type PrintJobStatus =
-  | 'pending'
-  | 'claimed'
-  | 'sent_unconfirmed'
-  | 'printed_assumed'
-  | 'printed_confirmed'
-  | 'failed'
-  | 'cancelled';
+  | "pending"
+  | "claimed"
+  | "sent_unconfirmed"
+  | "printed_assumed"
+  | "printed_confirmed"
+  | "failed"
+  | "cancelled";
 
-export type PrintJobType = 'new_order' | 'additional_items' | 'cancellation';
+export type PrintJobType = "new_order" | "additional_items" | "cancellation";
 
-export type PaymentMethod = 'cash' | 'yape' | 'plin' | 'card' | 'mixed';
+export type PaymentMethod = "cash" | "yape" | "plin" | "card" | "mixed";
 
 export interface UserProfile {
   userId: string;
@@ -110,7 +110,7 @@ export interface OrderItem {
   quantity: number;
   observations?: string;
   modifiers: OrderItemModifier[];
-  status: 'pending' | 'in_kitchen' | 'served' | 'cancelled';
+  status: "pending" | "in_kitchen" | "served" | "cancelled";
   subtotalPen: number;
 }
 

@@ -1,14 +1,16 @@
 # Regla de Calidad y Estrategia de Pruebas: El Huarique de Catacaos
 
 ## Referencia
+
 Esta regla define los estándares de calidad de software y verificación estricta descritos en `docs/PROJECT_SPEC.md` (Secciones 20 y 21).
 
 ## Principios de Calidad No Negociables
+
 1. **Tolerancia Cero a Errores:**
    - Prohibido avanzar de fase con errores de TypeScript (`tsc --noEmit`), advertencias de linter (`eslint`), pruebas fallidas (`vitest`) o excepciones en la consola del navegador.
 2. **Pirámide de Pruebas Obligatoria:**
    - **Pruebas Unitarias (Vitest):** Formateo de moneda peruana (`S/`), validación de esquemas Zod de pedidos y compras, cálculo de recetas y balances de inventario con precisión decimal (`numeric`).
-   - **Pruebas de Integración y Seguridad (pgTAP):** 
+   - **Pruebas de Integración y Seguridad (pgTAP):**
      - Verificación de que toda tabla en `public` posee RLS habilitado.
      - Pruebas de aislamiento multi-tenant con dos `restaurant_id` distintos para prevenir vulnerabilidades IDOR/BOLA.
      - Verificación de que usuarios inactivos o roles no autorizados son bloqueados en las RPCs.

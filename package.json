@@ -20,12 +20,16 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "format": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:fix": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
   },
   "devDependencies": {
+    "@eslint/js": "9.20.0",
+    "@playwright/test": "1.50.1",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.2.0",
+    "@types/node": "22.13.4",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
     "@typescript-eslint/eslint-plugin": "8.24.1",
