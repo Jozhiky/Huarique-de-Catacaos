@@ -1,0 +1,17 @@
+{
+  "name": "@huarique/print-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@huarique/domain": "workspace:*",
+    "@supabase/supabase-js": "2.48.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.19",
+    "typescript": "5.7.3"
+  }
+}
