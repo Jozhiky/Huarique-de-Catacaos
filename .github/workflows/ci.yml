@@ -41,7 +41,7 @@ jobs:
         run: supabase db reset
 
       - name: 1. Pruebas de Seguridad y RLS en Base de Datos (pgTAP)
-        run: supabase test db
+        run: supabase test db --debug
 
       - name: 2. Análisis Estático de Base de Datos (Database Linter)
         run: supabase db lint --level error
