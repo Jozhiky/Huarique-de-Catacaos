@@ -10,8 +10,6 @@ SET search_path = public, extensions;
 -- Asegurar permisos y search_path para roles durante la sesión de prueba
 GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public, extensions TO anon, authenticated;
-ALTER ROLE anon SET search_path TO public, extensions;
-ALTER ROLE authenticated SET search_path TO public, extensions;
 
 SELECT no_plan();
 
@@ -38,6 +36,7 @@ SELECT is_empty(
 
 -- ------------------------------------------------------------------------------
 -- 3. RECHAZO TOTAL AL ROL ANÓNIMO (Revocación universal de permisos)
+-- SQLSTATE 42501 = insufficient_privilege / permission denied
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE anon;
 SET LOCAL search_path = public, extensions;
@@ -45,27 +44,27 @@ SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
 
 SELECT throws_ok(
     $$ SELECT * FROM public.restaurants $$,
-    'permission denied',
+    '42501',
     'Rol anon no tiene permiso SELECT en restaurants'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.profiles $$,
-    'permission denied',
+    '42501',
     'Rol anon no tiene permiso SELECT en profiles'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.menu_categories $$,
-    'permission denied',
+    '42501',
     'Rol anon no tiene permiso SELECT en menu_categories'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.products $$,
-    'permission denied',
+    '42501',
     'Rol anon no tiene permiso SELECT en products'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.product_variants $$,
-    'permission denied',
+    '42501',
     'Rol anon no tiene permiso SELECT en product_variants'
 );
 
@@ -81,9 +80,9 @@ INSERT INTO auth.users (
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 ) VALUES
     ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'admin@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"admin"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- Insertar perfiles en public.profiles
@@ -201,6 +200,7 @@ WHERE user_id = '00000000-0000-0000-0000-000000000020';
 
 -- ------------------------------------------------------------------------------
 -- 7. RESTRICCIONES CHECK Y REGLAS DE NEGOCIO (VALIDAR, Precios, etc.)
+-- SQLSTATE 23514 = check_violation
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE postgres;
 SET LOCAL search_path = public, extensions;
@@ -219,7 +219,7 @@ SELECT throws_ok(
         true
     );
     $$,
-    'violates check constraint',
+    '23514',
     'Variante no puede ser is_orderable=true y price_needs_validation=true simultáneamente'
 );
 
@@ -237,12 +237,13 @@ SELECT throws_ok(
         false
     );
     $$,
-    'violates check constraint',
+    '23514',
     'Variante ordenable no puede tener precio 0'
 );
 
 -- ------------------------------------------------------------------------------
 -- 8. TABLAS INMUTABLES (APPEND-ONLY TRIGGERS)
+-- SQLSTATE 23001 = restrict_violation (ERRCODE usado en el trigger)
 -- ------------------------------------------------------------------------------
 -- Insertar movimiento de prueba
 INSERT INTO public.inventory_movements (
@@ -263,7 +264,7 @@ SELECT throws_ok(
     SET quantity = 20.000
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    'Operación UPDATE no permitida en tabla inmutable',
+    '23001',
     'UPDATE en inventory_movements debe ser rechazado por trigger append-only'
 );
 
@@ -273,7 +274,7 @@ SELECT throws_ok(
     DELETE FROM public.inventory_movements
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    'Operación DELETE no permitida en tabla inmutable',
+    '23001',
     'DELETE en inventory_movements debe ser rechazado por trigger append-only'
 );
 
@@ -304,9 +305,10 @@ SELECT results_eq(
 );
 
 -- Verificar que authenticated no puede leer directamente audit_logs
+-- SQLSTATE 42501 = permission denied
 SELECT throws_ok(
     $$ SELECT * FROM public.audit_logs $$,
-    'permission denied',
+    '42501',
     'Rol authenticated no debe tener permiso SELECT en audit_logs en Fase 2'
 );
 
@@ -327,6 +329,7 @@ SELECT results_eq(
 );
 
 -- Mozo intentando ejecutar RPC administrativa (debe fallar)
+-- SQLSTATE 42501 = insufficient_privilege (ERRCODE en las RPCs admin)
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
@@ -335,7 +338,7 @@ SELECT throws_ok(
     $$
     SELECT public.admin_create_category('Postres', 10);
     $$,
-    'No autorizado',
+    '42501',
     'Mozo no debe poder ejecutar admin_create_category'
 );
 
