@@ -295,7 +295,17 @@ SELECT results_eq(
     'Variante confirmada debe tener nuevo precio y ser ordenable'
 );
 
--- Verificar que se registró en audit_logs
+-- Verificar que authenticated no puede leer directamente audit_logs
+SELECT throws_ok(
+    $$ SELECT * FROM public.audit_logs $$,
+    '42501',
+    NULL,
+    'Rol authenticated no debe tener permiso SELECT en audit_logs en Fase 2'
+);
+
+-- Como postgres, verificar que la acción administrativa se registró en audit_logs
+SET LOCAL ROLE postgres;
+
 SELECT results_eq(
     $$
     SELECT action
