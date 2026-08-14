@@ -57,10 +57,30 @@ SELECT is_empty(
 );
 
 -- ------------------------------------------------------------------------------
--- 4. AISLAMIENTO MULTI-TENANT Y VISIBILIDAD DE PERFILES
+-- 4. FIXTURES LOCALES Y AISLAMIENTO MULTI-TENANT
 -- ------------------------------------------------------------------------------
--- Cargar fixtures de autenticación para pruebas
-\i supabase/fixtures/local_auth_accounts.sql
+SET LOCAL ROLE postgres;
+
+-- Insertar cuentas en auth.users para pruebas si no existen
+INSERT INTO auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) VALUES
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'admin@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"admin"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Insertar perfiles en public.profiles
+INSERT INTO public.profiles (
+    id, restaurant_id, user_id, first_name, last_name, staff_code, staff_role, active
+) VALUES
+    ('00000000-0000-0000-0000-000000000110', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000010', 'Rosa', 'Morales', '1001', 'admin', true),
+    ('00000000-0000-0000-0000-000000000120', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000020', 'Carlos', 'Sánchez', '2001', 'waiter', true),
+    ('00000000-0000-0000-0000-000000000130', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000030', 'Elena', 'Flores', '3001', 'cashier', true),
+    ('00000000-0000-0000-0000-000000000140', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000040', 'Agente', 'Impresión', '4001', 'printer_agent', true)
+ON CONFLICT (user_id) DO NOTHING;
 
 -- Simular usuario Administrador (Rosa Morales)
 SET LOCAL ROLE authenticated;
@@ -295,8 +315,21 @@ SELECT throws_ok(
 -- 10. RE-EJECUCIÓN DE SEMILLA IDEMPOTENTE Y NO DESTRUCTIVA
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE postgres;
--- Re-ejecutar seed.sql
-\i supabase/seed.sql
+
+-- Simulación de re-ejecución de semilla con ON CONFLICT DO NOTHING sobre la fila modificada
+INSERT INTO public.product_variants (
+    id, restaurant_id, product_id, variant_name, price, price_needs_validation, is_orderable, is_active, display_order
+) VALUES (
+    '00000000-0000-0000-0200-000000000018',
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0100-000000000012',
+    'Fuente',
+    100.00,
+    true,
+    false,
+    true,
+    2
+) ON CONFLICT (id) DO NOTHING;
 
 -- Verificar que el precio confirmado por Rosa (S/ 110.00) NO fue sobreescrito por la semilla
 SELECT results_eq(

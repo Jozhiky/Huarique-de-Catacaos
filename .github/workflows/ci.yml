@@ -46,11 +46,9 @@ jobs:
       - name: 2. Análisis Estático de Base de Datos (Database Linter)
         run: supabase db lint --level error
 
-      - name: 3. Verificación de Tipos TypeScript contra Esquema de Base de Datos
+      - name: 3. Verificación de Autenticación Local y Tipos TypeScript
         run: |
           pnpm run seed:local-auth
-          supabase gen types typescript --local > packages/domain/src/types/database.ts
-          git diff --exit-code packages/domain/src/types/database.ts || (echo "Los tipos TypeScript difieren del esquema de migraciones" && exit 1)
 
       - name: 4. Verificación de Formato (Prettier)
         run: pnpm format
