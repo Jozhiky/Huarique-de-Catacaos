@@ -11,14 +11,13 @@ REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon, authenticated, PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
     REVOKE EXECUTE ON ROUTINES FROM PUBLIC, anon, authenticated;
 
--- 2. Habilitación y Forzado Estricto de Row Level Security (RLS) en TODAS las tablas públicas
+-- 2. Habilitación Estricta de Row Level Security (RLS) en TODAS las tablas públicas
 DO $$
 DECLARE
     t record;
 BEGIN
     FOR t IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
         EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t.tablename);
-        EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY;', t.tablename);
     END LOOP;
 END $$;
 
