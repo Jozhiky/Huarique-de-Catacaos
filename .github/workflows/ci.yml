@@ -44,9 +44,11 @@ jobs:
         run: |
           supabase test db 2>&1 | tee pgtap.log
           EXIT_CODE=${PIPESTATUS[0]}
-          echo "::group::pgTAP Full Output"
-          cat pgtap.log
-          echo "::endgroup::"
+          if [ $EXIT_CODE -ne 0 ]; then
+            while IFS= read -r line; do
+              echo "::error title=pgTAP::$line"
+            done < pgtap.log
+          fi
           exit $EXIT_CODE
 
       - name: 2. Análisis Estático de Base de Datos (Database Linter)

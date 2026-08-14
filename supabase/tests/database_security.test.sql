@@ -38,6 +38,7 @@ SELECT is_empty(
 -- 3. RECHAZO TOTAL AL ROL ANÓNIMO (Revocación universal de permisos)
 -- SQLSTATE 42501 = insufficient_privilege / permission denied
 -- ------------------------------------------------------------------------------
+RESET ROLE;
 SET LOCAL ROLE anon;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
@@ -71,8 +72,9 @@ SELECT throws_ok(
 -- ------------------------------------------------------------------------------
 -- 4. FIXTURES LOCALES Y AISLAMIENTO MULTI-TENANT
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE postgres;
-SET LOCAL search_path = public, extensions;
+RESET ROLE;
+SET search_path = public, extensions;
+SET LOCAL "request.jwt.claims" = '{}';
 
 -- Insertar cuentas en auth.users para pruebas si no existen
 INSERT INTO auth.users (
@@ -96,6 +98,7 @@ INSERT INTO public.profiles (
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Simular usuario Administrador (Rosa Morales)
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
@@ -125,6 +128,7 @@ SELECT results_eq(
 );
 
 -- Simular usuario Mozo (Carlos Sánchez)
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
@@ -150,6 +154,7 @@ SELECT is_empty(
 );
 
 -- El administrador sí debe verlas todas
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
@@ -167,13 +172,14 @@ SELECT isnt_empty(
 -- 6. ZERO-STALE-TRUST: USUARIOS DESACTIVADOS OBTIENEN 0 FILAS
 -- ------------------------------------------------------------------------------
 -- Desactivar temporalmente al mozo
-SET LOCAL ROLE postgres;
-SET LOCAL search_path = public, extensions;
+RESET ROLE;
+SET search_path = public, extensions;
 UPDATE public.profiles
 SET active = false
 WHERE user_id = '00000000-0000-0000-0000-000000000020';
 
 -- Intentar leer como mozo desactivado
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
@@ -192,8 +198,8 @@ SELECT is_empty(
 );
 
 -- Restaurar mozo activo
-SET LOCAL ROLE postgres;
-SET LOCAL search_path = public, extensions;
+RESET ROLE;
+SET search_path = public, extensions;
 UPDATE public.profiles
 SET active = true
 WHERE user_id = '00000000-0000-0000-0000-000000000020';
@@ -202,8 +208,8 @@ WHERE user_id = '00000000-0000-0000-0000-000000000020';
 -- 7. RESTRICCIONES CHECK Y REGLAS DE NEGOCIO (VALIDAR, Precios, etc.)
 -- SQLSTATE 23514 = check_violation
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE postgres;
-SET LOCAL search_path = public, extensions;
+RESET ROLE;
+SET search_path = public, extensions;
 
 -- Intento de insertar variante ordenable con price_needs_validation = true (debe fallar)
 SELECT throws_ok(
@@ -245,6 +251,9 @@ SELECT throws_ok(
 -- 8. TABLAS INMUTABLES (APPEND-ONLY TRIGGERS)
 -- SQLSTATE 23001 = restrict_violation (ERRCODE usado en el trigger)
 -- ------------------------------------------------------------------------------
+RESET ROLE;
+SET search_path = public, extensions;
+
 -- Insertar movimiento de prueba
 INSERT INTO public.inventory_movements (
     id, restaurant_id, ingredient_id, movement_type, quantity, notes
@@ -281,6 +290,7 @@ SELECT throws_ok(
 -- ------------------------------------------------------------------------------
 -- 9. RPCs ADMINISTRATIVAS DE CARTA Y CONFIRMACIÓN DE PRECIO
 -- ------------------------------------------------------------------------------
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
@@ -313,8 +323,8 @@ SELECT throws_ok(
 );
 
 -- Como postgres, verificar que la acción administrativa se registró en audit_logs
-SET LOCAL ROLE postgres;
-SET LOCAL search_path = public, extensions;
+RESET ROLE;
+SET search_path = public, extensions;
 
 SELECT results_eq(
     $$
@@ -330,6 +340,7 @@ SELECT results_eq(
 
 -- Mozo intentando ejecutar RPC administrativa (debe fallar)
 -- SQLSTATE 42501 = insufficient_privilege (ERRCODE en las RPCs admin)
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
@@ -345,8 +356,8 @@ SELECT throws_ok(
 -- ------------------------------------------------------------------------------
 -- 10. RE-EJECUCIÓN DE SEMILLA IDEMPOTENTE Y NO DESTRUCTIVA
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE postgres;
-SET LOCAL search_path = public, extensions;
+RESET ROLE;
+SET search_path = public, extensions;
 
 -- Simulación de re-ejecución de semilla con ON CONFLICT DO NOTHING sobre la fila modificada
 INSERT INTO public.product_variants (
