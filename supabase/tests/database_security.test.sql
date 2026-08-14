@@ -38,31 +38,26 @@ SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
 SELECT throws_ok(
     $$ SELECT * FROM public.restaurants $$,
     '42501',
-    NULL,
     'Rol anon no tiene permiso SELECT en restaurants'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.profiles $$,
     '42501',
-    NULL,
     'Rol anon no tiene permiso SELECT en profiles'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.menu_categories $$,
     '42501',
-    NULL,
     'Rol anon no tiene permiso SELECT en menu_categories'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.products $$,
     '42501',
-    NULL,
     'Rol anon no tiene permiso SELECT en products'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.product_variants $$,
     '42501',
-    NULL,
     'Rol anon no tiene permiso SELECT en product_variants'
 );
 
@@ -208,8 +203,7 @@ SELECT throws_ok(
         true
     );
     $$,
-    NULL,
-    NULL,
+    '23514',
     'Variante no puede ser is_orderable=true y price_needs_validation=true simultáneamente'
 );
 
@@ -227,8 +221,7 @@ SELECT throws_ok(
         false
     );
     $$,
-    NULL,
-    NULL,
+    '23514',
     'Variante ordenable no puede tener precio 0'
 );
 
@@ -254,8 +247,7 @@ SELECT throws_ok(
     SET quantity = 20.000
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    NULL,
-    NULL,
+    '23001',
     'UPDATE en inventory_movements debe ser rechazado por trigger append-only'
 );
 
@@ -265,8 +257,7 @@ SELECT throws_ok(
     DELETE FROM public.inventory_movements
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    NULL,
-    NULL,
+    '23001',
     'DELETE en inventory_movements debe ser rechazado por trigger append-only'
 );
 
@@ -299,7 +290,6 @@ SELECT results_eq(
 SELECT throws_ok(
     $$ SELECT * FROM public.audit_logs $$,
     '42501',
-    NULL,
     'Rol authenticated no debe tener permiso SELECT en audit_logs en Fase 2'
 );
 
@@ -326,8 +316,7 @@ SELECT throws_ok(
     $$
     SELECT public.admin_create_category('Postres', 10);
     $$,
-    NULL,
-    NULL,
+    '42501',
     'Mozo no debe poder ejecutar admin_create_category'
 );
 
