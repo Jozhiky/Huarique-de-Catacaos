@@ -4,14 +4,13 @@
 -- ==============================================================================
 
 BEGIN;
-CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
 SET search_path = public, extensions;
 
 -- Asegurar permisos y search_path para roles durante la sesión de prueba
-GRANT USAGE ON SCHEMA public, extensions, pg_temp TO anon, authenticated;
-GRANT ALL ON ALL TABLES IN SCHEMA extensions, pg_temp TO anon, authenticated;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA extensions, pg_temp TO anon, authenticated;
-GRANT ALL ON ALL ROUTINES IN SCHEMA public, extensions, pg_temp TO anon, authenticated;
+GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA extensions TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA extensions TO anon, authenticated;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public, extensions TO anon, authenticated;
 
 SELECT no_plan();
 
