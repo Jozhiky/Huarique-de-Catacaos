@@ -30,30 +30,40 @@ SELECT is_empty(
 );
 
 -- ------------------------------------------------------------------------------
--- 3. RECHAZO TOTAL AL ROL ANÓNIMO
+-- 3. RECHAZO TOTAL AL ROL ANÓNIMO (Revocación universal de permisos)
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE anon;
 SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
 
-SELECT is_empty(
+SELECT throws_ok(
     $$ SELECT * FROM public.restaurants $$,
-    'Rol anon no debe leer la tabla restaurants'
+    '42501',
+    NULL,
+    'Rol anon no tiene permiso SELECT en restaurants'
 );
-SELECT is_empty(
+SELECT throws_ok(
     $$ SELECT * FROM public.profiles $$,
-    'Rol anon no debe leer la tabla profiles'
+    '42501',
+    NULL,
+    'Rol anon no tiene permiso SELECT en profiles'
 );
-SELECT is_empty(
+SELECT throws_ok(
     $$ SELECT * FROM public.menu_categories $$,
-    'Rol anon no debe leer la tabla menu_categories'
+    '42501',
+    NULL,
+    'Rol anon no tiene permiso SELECT en menu_categories'
 );
-SELECT is_empty(
+SELECT throws_ok(
     $$ SELECT * FROM public.products $$,
-    'Rol anon no debe leer la tabla products'
+    '42501',
+    NULL,
+    'Rol anon no tiene permiso SELECT en products'
 );
-SELECT is_empty(
+SELECT throws_ok(
     $$ SELECT * FROM public.product_variants $$,
-    'Rol anon no debe leer la tabla product_variants'
+    '42501',
+    NULL,
+    'Rol anon no tiene permiso SELECT en product_variants'
 );
 
 -- ------------------------------------------------------------------------------
