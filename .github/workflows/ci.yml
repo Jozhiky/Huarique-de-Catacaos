@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate:
-    name: Verificación de Calidad y Tests
+    name: Verificación de Calidad, Base de Datos y Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -29,23 +29,50 @@ jobs:
       - name: Instalar dependencias con lockfile congelado
         run: pnpm install --frozen-lockfile
 
-      - name: 1. Verificación de Formato (Prettier)
+      - name: Configurar Supabase CLI 2.114.0
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Iniciar Supabase Local
+        run: supabase start
+
+      - name: Aplicar Migraciones y Semilla en Base de Datos
+        run: supabase db reset
+
+      - name: 1. Pruebas de Seguridad y RLS en Base de Datos (pgTAP)
+        run: supabase test db
+
+      - name: 2. Análisis Estático de Base de Datos (Database Linter)
+        run: supabase db lint --level error
+
+      - name: 3. Verificación de Tipos TypeScript contra Esquema de Base de Datos
+        run: |
+          pnpm run seed:local-auth
+          supabase gen types typescript --local > packages/domain/src/types/database.ts
+          git diff --exit-code packages/domain/src/types/database.ts || (echo "Los tipos TypeScript difieren del esquema de migraciones" && exit 1)
+
+      - name: 4. Verificación de Formato (Prettier)
         run: pnpm format
 
-      - name: 2. Análisis Estático de Código (ESLint)
+      - name: 5. Análisis Estático de Código (ESLint)
         run: pnpm lint
 
-      - name: 3. Comprobación Estricta de Tipos (TypeScript)
+      - name: 6. Comprobación Estricta de Tipos (TypeScript)
         run: pnpm typecheck
 
-      - name: 4. Pruebas Unitarias y de Componentes (Vitest)
+      - name: 7. Pruebas Unitarias y de Componentes (Vitest)
         run: pnpm test
 
       - name: Instalar binarios de Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: 5. Pruebas E2E de Tablet (Playwright 1280x800 y 1024x600)
+      - name: 8. Pruebas E2E de Tablet (Playwright 1280x800 y 1024x600)
         run: pnpm test:e2e
 
-      - name: 6. Compilación de Producción
+      - name: 9. Compilación de Producción
         run: pnpm build
+
+      - name: Detener Supabase Local
+        if: always()
+        run: supabase stop --no-backup

@@ -13,6 +13,7 @@ import {
   type PrintJobStatus,
 } from "@huarique/domain";
 import { Users, Layers, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { AdminMenu } from "./components/AdminMenu/AdminMenu";
 
 interface SelectedTableState {
   number: number;
@@ -107,15 +108,15 @@ export const App: React.FC = () => {
     <TabletShell
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      staffName="Carlos Gómez"
-      staffRole="waiter"
+      staffName="Rosa Morales"
+      staffRole="admin"
       isOnline={isOnline}
       onLockSession={() => {
         setPinValue("");
         alert("Sesión bloqueada por seguridad. Ingrese su PIN de mozo.");
       }}
     >
-      {/* Contenido según la pestaña activa */}
+      {/* Pestaña: Salones y Mesas */}
       {activeTab === "mesas" && (
         <div className="h-full flex flex-col p-3 sm:p-4 gap-3 overflow-hidden">
           {/* Barra de Filtros y Salones */}
@@ -213,6 +214,9 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* Pestaña: Administración de Carta y Precios (Fase 2) */}
+      {activeTab === "carta" && <AdminMenu />}
+
       {/* Pestaña: Catálogo de Componentes del Design System */}
       {activeTab === "pedidos" && (
         <div className="h-full overflow-y-auto p-4 sm:p-6 flex flex-col gap-6">
@@ -290,16 +294,16 @@ export const App: React.FC = () => {
               <ShieldCheck className="h-8 w-8" />
             </div>
             <h2 className="font-display text-3xl font-bold text-brand-navy uppercase tracking-wide mb-2">
-              Fase 1: Fundaciones y Tokens Completados
+              Fase 2: Base de Datos y Carta Habilitadas
             </h2>
             <p className="text-sm text-neutral-600 font-sans leading-relaxed mb-6">
               Esta sección operativa será implementada secuencialmente en las
-              Fases 6, 7 y 8 según el plan maestro aprobado. Toda la
-              arquitectura por capas, sistema de tokens y tipografías locales ya
-              se encuentran listos y verificados.
+              Fases 6, 7 y 8 según el plan maestro aprobado. Puedes gestionar
+              toda la carta y precios oficiales en la pestaña{" "}
+              <strong>Carta</strong>.
             </p>
-            <Button variant="brand" onClick={() => setActiveTab("mesas")}>
-              Volver a Salones y Mesas
+            <Button variant="brand" onClick={() => setActiveTab("carta")}>
+              Ir a Administración de Carta
             </Button>
           </div>
         </div>
@@ -370,7 +374,7 @@ export const App: React.FC = () => {
         </Modal>
       )}
 
-      {/* Botón Flotante de Desarrollo para Simular Conectividad (No ocupa espacio en la cabecera del POS) */}
+      {/* Botón Flotante de Desarrollo para Simular Conectividad */}
       <div className="fixed bottom-3 right-3 z-40">
         <button
           type="button"

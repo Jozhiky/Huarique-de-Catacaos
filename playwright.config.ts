@@ -13,12 +13,18 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "setup",
+      testMatch: /.*\.setup\.ts/,
+    },
+    {
       name: "Tablet-1280x800",
       use: {
         viewport: { width: 1280, height: 800 },
         userAgent:
           "Mozilla/5.0 (Linux; Android 13; Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        storageState: "playwright/.auth/admin.json",
       },
+      dependencies: ["setup"],
     },
     {
       name: "Tablet-1024x600",
@@ -26,7 +32,9 @@ export default defineConfig({
         viewport: { width: 1024, height: 600 },
         userAgent:
           "Mozilla/5.0 (Linux; Android 13; Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        storageState: "playwright/.auth/admin.json",
       },
+      dependencies: ["setup"],
     },
   ],
   webServer: {

@@ -29,6 +29,7 @@ export const TabletShell: React.FC<TabletShellProps> = ({
   const tabs = [
     { id: "mesas", label: "Mesas", fullLabel: "Salones y Mesas" },
     { id: "pedidos", label: "Pedidos", fullLabel: "Toma de Pedidos" },
+    { id: "carta", label: "Carta", fullLabel: "Administración de Carta" },
     { id: "caja", label: "Caja", fullLabel: "Caja y Cobro" },
     { id: "inventario", label: "Stock", fullLabel: "Inventario" },
     { id: "dashboard", label: "Panel", fullLabel: "Dashboard" },

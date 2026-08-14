@@ -159,10 +159,10 @@ test.describe("Pruebas E2E de Hardening Táctil POS — El Huarique de Catacaos"
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Pestañas de navegación
+    // Pestañas de navegación (6 pestañas principales)
     const navButtons = page.locator("header nav button");
     const navCount = await navButtons.count();
-    expect(navCount).toBe(5);
+    expect(navCount).toBe(6);
 
     for (let i = 0; i < navCount; i++) {
       const btn = navButtons.nth(i);

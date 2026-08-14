@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aprobado (Revisión 1.2 — Hardening de Calidad, Tipos y E2E Playwright)
+Aprobado (Revisión 1.3 — Fase 2: Supabase CLI 2.114.0 y @supabase/supabase-js 2.112.3)
 
 ## Contexto
 
@@ -17,12 +17,14 @@ Tras evaluar la disponibilidad y compatibilidad de pares (_peerDependencies_) y 
 - **Node.js:** `24.14.1` (Node.js 24 LTS registrado en `.node-version`, `.nvmrc` y en el pipeline de GitHub Actions).
 - **pnpm:** `11.1.2` (registrado en el campo `packageManager` de `package.json` raíz).
 - **TypeScript:** `5.7.3` (configuración estricta compartida en `tsconfig.base.json`).
+- **Supabase CLI:** `2.114.0` (fijado exactamente en `devDependencies` de `package.json` raíz).
 - **Node Types:** `@types/node`: `22.13.4` (versión exacta en raíz y en `apps/print-bridge`).  
   _Justificación técnica:_ Node.js 24 LTS es el runtime de ejecución. En DefinitelyTyped, `@types/node@22.13.4` provee cobertura completa y estable para todas las APIs estándar empleadas por el monorepo (sockets TCP en `net`, streams, timers y crypto) asegurando máxima estabilidad y compatibilidad con TypeScript 5.7 sin colisiones de tipado con `dom` en el frontend. Se conserva la versión exacta `22.13.4` hasta la disponibilidad general de `@types/node@24`.
 
 ### 2. Frontend y UI (`apps/web` y `packages/ui`)
 
 - **React & React DOM:** `19.0.0` (React 19 LTS compatible con el ecosistema de componentes y hooks).
+- **Supabase Client:** `@supabase/supabase-js`: `2.112.3` (fijado exactamente en `apps/web` y `apps/print-bridge`).
 - **Vite:** `6.2.0` (`@vitejs/plugin-react`: `4.3.4`).
 - **Tailwind CSS:** `3.4.17` (con `@tailwindcss/forms`: `0.5.10`, `postcss`: `8.5.3`, `autoprefixer`: `10.4.20`).
 - **Gestión de Formularios y Validación:** `react-hook-form`: `7.54.2`, `@hookform/resolvers`: `3.10.0`, `zod`: `3.24.2`.
@@ -34,7 +36,7 @@ Tras evaluar la disponibilidad y compatibilidad de pares (_peerDependencies_) y 
 ### 3. Print Bridge Daemon (`apps/print-bridge`)
 
 - **Runtime:** `Node.js 24 LTS`.
-- **Supabase Client:** `@supabase/supabase-js`: `2.48.1`.
+- **Supabase Client:** `@supabase/supabase-js`: `2.112.3`.
 - **Protocolo de Impresión:** Adaptador TCP Socket nativo para puerto 9100 ESC/POS con timeout estricto de 5 segundos.
 
 ### 4. Calidad, Testing y Linting
