@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aprobado (Revisión 1.1 — Hardening de Calidad y E2E Playwright)
+Aprobado (Revisión 1.2 — Hardening de Calidad, Tipos y E2E Playwright)
 
 ## Contexto
 
@@ -14,10 +14,11 @@ Tras evaluar la disponibilidad y compatibilidad de pares (_peerDependencies_) y 
 
 ### 1. Entorno de Runtime y Herramientas Base
 
-- **Node.js:** `24.14.1` (Node.js 24 LTS registrado en `.node-version` y `.nvmrc`).
+- **Node.js:** `24.14.1` (Node.js 24 LTS registrado en `.node-version`, `.nvmrc` y en el pipeline de GitHub Actions).
 - **pnpm:** `11.1.2` (registrado en el campo `packageManager` de `package.json` raíz).
 - **TypeScript:** `5.7.3` (configuración estricta compartida en `tsconfig.base.json`).
-- **Node Types:** `@types/node`: `22.13.4` (en raíz y en `apps/print-bridge`).
+- **Node Types:** `@types/node`: `22.13.4` (versión exacta en raíz y en `apps/print-bridge`).  
+  _Justificación técnica:_ Node.js 24 LTS es el runtime de ejecución. En DefinitelyTyped, `@types/node@22.13.4` provee cobertura completa y estable para todas las APIs estándar empleadas por el monorepo (sockets TCP en `net`, streams, timers y crypto) asegurando máxima estabilidad y compatibilidad con TypeScript 5.7 sin colisiones de tipado con `dom` en el frontend. Se conserva la versión exacta `22.13.4` hasta la disponibilidad general de `@types/node@24`.
 
 ### 2. Frontend y UI (`apps/web` y `packages/ui`)
 

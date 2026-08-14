@@ -378,14 +378,14 @@ REVISIÓN DEL PEDIDO: 2
 - ESC/POS por TCP/IP, preferentemente puerto 9100.
 - Estados estrictos de la cola de impresión (`public.print_jobs.status`):
   1. `pending`: Trabajo creado en base de datos, listo para ser reclamado.
-  2. `claimed`: Reclamado atómicamente por un agente local con `claim_token` y `claim_expires_at` (lease de 30 segundos).
+  2. `claimed`: Reclamado atómicamente por un agente local con `claim_token` y `claim_expires_at` (lease de 45 segundos según el plan aprobado).
   3. `sent_unconfirmed`: Enviado por socket TCP a la impresora pero pendiente de confirmación física.
-  4. `printed_assumed`: Impresión asumida exitosa tras confirmación de socket o timeout sin error de transporte.
-  5. `printed_confirmed`: Confirmado físicamente por el agente de impresión.
+  4. `printed_assumed`: Impresión asumida exitosa tras confirmación de socket o timeout sin error de transporte en impresoras estándar sin canal de retorno.
+  5. `printed_confirmed`: Confirmado físicamente por el agente de impresión únicamente cuando el modelo de impresora ofrece un estado verificable (ej. sondeo bidireccional ESC/POS DLE EOT o Auto Status Back). Una escritura TCP correcta no constituye confirmación física.
   6. `failed`: Fallo de conexión o papel agotado tras agotar reintentos.
   7. `cancelled`: Trabajo anulado por superación de comanda o intervención administrativa.
 - Restricción de unicidad estricta: `UNIQUE (order_revision_id, job_type, destination_printer_id)` con `order_revision_id NOT NULL`.
-- Reclamo atómico de trabajo con lease (`claim_token`, `claimed_by`, `claim_expires_at`) para impedir doble impresión en concurrencia.
+- Reclamo atómico de trabajo con lease de 45 segundos (`claim_token`, `claimed_by`, `claim_expires_at`) para impedir doble impresión en concurrencia.
 - Semántica de impresión física _at-least-once_: todo trabajo reintentado o recuperado tras timeout se marca obligatoriamente con la leyenda `*** COPIA / POSIBLE DUPLICADO ***`.
 - Máximo tres reintentos automáticos con espera incremental exponencial.
 - `printed_at`, `printer_id`, `attempt_count` y error final auditables.
