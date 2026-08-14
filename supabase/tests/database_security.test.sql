@@ -37,27 +37,27 @@ SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
 
 SELECT throws_ok(
     $$ SELECT * FROM public.restaurants $$,
-    '42501',
+    'permission denied',
     'Rol anon no tiene permiso SELECT en restaurants'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.profiles $$,
-    '42501',
+    'permission denied',
     'Rol anon no tiene permiso SELECT en profiles'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.menu_categories $$,
-    '42501',
+    'permission denied',
     'Rol anon no tiene permiso SELECT en menu_categories'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.products $$,
-    '42501',
+    'permission denied',
     'Rol anon no tiene permiso SELECT en products'
 );
 SELECT throws_ok(
     $$ SELECT * FROM public.product_variants $$,
-    '42501',
+    'permission denied',
     'Rol anon no tiene permiso SELECT en product_variants'
 );
 
@@ -203,7 +203,7 @@ SELECT throws_ok(
         true
     );
     $$,
-    '23514',
+    'violates check constraint',
     'Variante no puede ser is_orderable=true y price_needs_validation=true simultáneamente'
 );
 
@@ -221,7 +221,7 @@ SELECT throws_ok(
         false
     );
     $$,
-    '23514',
+    'violates check constraint',
     'Variante ordenable no puede tener precio 0'
 );
 
@@ -247,7 +247,7 @@ SELECT throws_ok(
     SET quantity = 20.000
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    '23001',
+    'Operación UPDATE no permitida en tabla inmutable',
     'UPDATE en inventory_movements debe ser rechazado por trigger append-only'
 );
 
@@ -257,7 +257,7 @@ SELECT throws_ok(
     DELETE FROM public.inventory_movements
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    '23001',
+    'Operación DELETE no permitida en tabla inmutable',
     'DELETE en inventory_movements debe ser rechazado por trigger append-only'
 );
 
@@ -289,7 +289,7 @@ SELECT results_eq(
 -- Verificar que authenticated no puede leer directamente audit_logs
 SELECT throws_ok(
     $$ SELECT * FROM public.audit_logs $$,
-    '42501',
+    'permission denied',
     'Rol authenticated no debe tener permiso SELECT en audit_logs en Fase 2'
 );
 
@@ -316,7 +316,7 @@ SELECT throws_ok(
     $$
     SELECT public.admin_create_category('Postres', 10);
     $$,
-    '42501',
+    'No autorizado',
     'Mozo no debe poder ejecutar admin_create_category'
 );
 
