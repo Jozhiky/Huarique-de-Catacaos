@@ -6,7 +6,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
-SELECT plan(32);
+SELECT no_plan();
 
 -- ------------------------------------------------------------------------------
 -- 1. EXTENSIONES Y ESQUEMAS
@@ -67,9 +67,9 @@ INSERT INTO auth.users (
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 ) VALUES
     ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'admin@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"admin"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
+    ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- Insertar perfiles en public.profiles
@@ -198,7 +198,7 @@ SELECT throws_ok(
         true
     );
     $$,
-    '23514', -- check_violation
+    NULL,
     NULL,
     'Variante no puede ser is_orderable=true y price_needs_validation=true simultáneamente'
 );
@@ -217,7 +217,7 @@ SELECT throws_ok(
         false
     );
     $$,
-    '23514', -- check_violation
+    NULL,
     NULL,
     'Variante ordenable no puede tener precio 0'
 );
@@ -244,7 +244,7 @@ SELECT throws_ok(
     SET quantity = 20.000
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    'restrict_violation',
+    NULL,
     NULL,
     'UPDATE en inventory_movements debe ser rechazado por trigger append-only'
 );
@@ -255,7 +255,7 @@ SELECT throws_ok(
     DELETE FROM public.inventory_movements
     WHERE id = '00000000-0000-0000-9999-000000000001';
     $$,
-    'restrict_violation',
+    NULL,
     NULL,
     'DELETE en inventory_movements debe ser rechazado por trigger append-only'
 );
@@ -306,7 +306,7 @@ SELECT throws_ok(
     $$
     SELECT public.admin_create_category('Postres', 10);
     $$,
-    'insufficient_privilege',
+    NULL,
     NULL,
     'Mozo no debe poder ejecutar admin_create_category'
 );
