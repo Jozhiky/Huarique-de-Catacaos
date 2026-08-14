@@ -41,7 +41,13 @@ jobs:
         run: supabase db reset
 
       - name: 1. Pruebas de Seguridad y RLS en Base de Datos (pgTAP)
-        run: supabase test db --debug
+        run: |
+          supabase test db 2>&1 | tee pgtap.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "::group::pgTAP Full Output"
+          cat pgtap.log
+          echo "::endgroup::"
+          exit $EXIT_CODE
 
       - name: 2. Análisis Estático de Base de Datos (Database Linter)
         run: supabase db lint --level error
