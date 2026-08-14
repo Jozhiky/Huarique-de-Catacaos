@@ -4,11 +4,14 @@
 -- ==============================================================================
 
 BEGIN;
-CREATE EXTENSION IF NOT EXISTS pgtap;
+CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
+SET search_path = public, extensions;
 
--- Conceder permisos de ejecución sobre el framework pgTAP a anon y authenticated durante la prueba
+-- Asegurar permisos y search_path para roles durante la sesión de prueba
 GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public, extensions TO anon, authenticated;
+ALTER ROLE anon SET search_path TO public, extensions;
+ALTER ROLE authenticated SET search_path TO public, extensions;
 
 SELECT no_plan();
 
@@ -37,6 +40,7 @@ SELECT is_empty(
 -- 3. RECHAZO TOTAL AL ROL ANÓNIMO (Revocación universal de permisos)
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE anon;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
 
 SELECT throws_ok(
@@ -69,6 +73,7 @@ SELECT throws_ok(
 -- 4. FIXTURES LOCALES Y AISLAMIENTO MULTI-TENANT
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE postgres;
+SET LOCAL search_path = public, extensions;
 
 -- Insertar cuentas en auth.users para pruebas si no existen
 INSERT INTO auth.users (
@@ -93,6 +98,7 @@ ON CONFLICT (user_id) DO NOTHING;
 
 -- Simular usuario Administrador (Rosa Morales)
 SET LOCAL ROLE authenticated;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
 
 SELECT results_eq(
@@ -121,6 +127,7 @@ SELECT results_eq(
 
 -- Simular usuario Mozo (Carlos Sánchez)
 SET LOCAL ROLE authenticated;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
 
 SELECT results_eq(
@@ -145,6 +152,7 @@ SELECT is_empty(
 
 -- El administrador sí debe verlas todas
 SET LOCAL ROLE authenticated;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
 
 SELECT isnt_empty(
@@ -161,12 +169,14 @@ SELECT isnt_empty(
 -- ------------------------------------------------------------------------------
 -- Desactivar temporalmente al mozo
 SET LOCAL ROLE postgres;
+SET LOCAL search_path = public, extensions;
 UPDATE public.profiles
 SET active = false
 WHERE user_id = '00000000-0000-0000-0000-000000000020';
 
 -- Intentar leer como mozo desactivado
 SET LOCAL ROLE authenticated;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
 
 SELECT is_empty(
@@ -184,6 +194,7 @@ SELECT is_empty(
 
 -- Restaurar mozo activo
 SET LOCAL ROLE postgres;
+SET LOCAL search_path = public, extensions;
 UPDATE public.profiles
 SET active = true
 WHERE user_id = '00000000-0000-0000-0000-000000000020';
@@ -192,6 +203,7 @@ WHERE user_id = '00000000-0000-0000-0000-000000000020';
 -- 7. RESTRICCIONES CHECK Y REGLAS DE NEGOCIO (VALIDAR, Precios, etc.)
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE postgres;
+SET LOCAL search_path = public, extensions;
 
 -- Intento de insertar variante ordenable con price_needs_validation = true (debe fallar)
 SELECT throws_ok(
@@ -269,6 +281,7 @@ SELECT throws_ok(
 -- 9. RPCs ADMINISTRATIVAS DE CARTA Y CONFIRMACIÓN DE PRECIO
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
 
 -- Confirmar precio de la variante 'Fuente' de Caballa saltpresa (era VALIDAR S/ 100)
@@ -299,6 +312,7 @@ SELECT throws_ok(
 
 -- Como postgres, verificar que la acción administrativa se registró en audit_logs
 SET LOCAL ROLE postgres;
+SET LOCAL search_path = public, extensions;
 
 SELECT results_eq(
     $$
@@ -314,6 +328,7 @@ SELECT results_eq(
 
 -- Mozo intentando ejecutar RPC administrativa (debe fallar)
 SET LOCAL ROLE authenticated;
+SET LOCAL search_path = public, extensions;
 SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
 
 SELECT throws_ok(
@@ -328,6 +343,7 @@ SELECT throws_ok(
 -- 10. RE-EJECUCIÓN DE SEMILLA IDEMPOTENTE Y NO DESTRUCTIVA
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE postgres;
+SET LOCAL search_path = public, extensions;
 
 -- Simulación de re-ejecución de semilla con ON CONFLICT DO NOTHING sobre la fila modificada
 INSERT INTO public.product_variants (
