@@ -6,24 +6,9 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
--- Conceder permisos de ejecución en funciones de pgTAP a anon y authenticated para la sesión de prueba
+-- Conceder permisos de ejecución sobre el framework pgTAP a anon y authenticated durante la prueba
 GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated;
-DO $$
-DECLARE
-    r record;
-BEGIN
-    FOR r IN (
-        SELECT oid::regprocedure AS func_sig
-        FROM pg_proc
-        WHERE proname IN (
-            'throws_ok', 'lives_ok', 'results_eq', 'is_empty', 'isnt_empty',
-            'ok', 'diag', 'plan', 'no_plan', 'finish', 'has_extension',
-            'has_schema', 'schema_owner_is'
-        )
-    ) LOOP
-        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon, authenticated;', r.func_sig);
-    END LOOP;
-END $$;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public, extensions TO anon, authenticated;
 
 SELECT no_plan();
 
@@ -91,9 +76,9 @@ INSERT INTO auth.users (
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 ) VALUES
     ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'admin@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"admin"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
+    ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- Insertar perfiles en public.profiles
