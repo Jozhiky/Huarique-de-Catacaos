@@ -32,31 +32,28 @@ SELECT is_empty(
 -- ------------------------------------------------------------------------------
 -- 3. RECHAZO TOTAL AL ROL ANÓNIMO (Revocación universal de permisos)
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE anon;
-SET LOCAL "request.jwt.claims" = '{"role": "anon"}';
-
 SELECT throws_ok(
-    $$ SELECT * FROM public.restaurants $$,
+    $$ SET LOCAL ROLE anon; SET LOCAL "request.jwt.claims" = '{"role": "anon"}'; SELECT * FROM public.restaurants; $$,
     'permission denied',
     'Rol anon no tiene permiso SELECT en restaurants'
 );
 SELECT throws_ok(
-    $$ SELECT * FROM public.profiles $$,
+    $$ SET LOCAL ROLE anon; SET LOCAL "request.jwt.claims" = '{"role": "anon"}'; SELECT * FROM public.profiles; $$,
     'permission denied',
     'Rol anon no tiene permiso SELECT en profiles'
 );
 SELECT throws_ok(
-    $$ SELECT * FROM public.menu_categories $$,
+    $$ SET LOCAL ROLE anon; SET LOCAL "request.jwt.claims" = '{"role": "anon"}'; SELECT * FROM public.menu_categories; $$,
     'permission denied',
     'Rol anon no tiene permiso SELECT en menu_categories'
 );
 SELECT throws_ok(
-    $$ SELECT * FROM public.products $$,
+    $$ SET LOCAL ROLE anon; SET LOCAL "request.jwt.claims" = '{"role": "anon"}'; SELECT * FROM public.products; $$,
     'permission denied',
     'Rol anon no tiene permiso SELECT en products'
 );
 SELECT throws_ok(
-    $$ SELECT * FROM public.product_variants $$,
+    $$ SET LOCAL ROLE anon; SET LOCAL "request.jwt.claims" = '{"role": "anon"}'; SELECT * FROM public.product_variants; $$,
     'permission denied',
     'Rol anon no tiene permiso SELECT en product_variants'
 );
@@ -64,17 +61,15 @@ SELECT throws_ok(
 -- ------------------------------------------------------------------------------
 -- 4. FIXTURES LOCALES Y AISLAMIENTO MULTI-TENANT
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE postgres;
-
 -- Insertar cuentas en auth.users para pruebas si no existen
 INSERT INTO auth.users (
     instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 ) VALUES
     ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'admin@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"admin"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
-    ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'waiter@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"waiter"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'cashier@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"cashier"}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000040', 'authenticated', 'authenticated', 'printer@huarique.pe', 'hash', now(), '{"provider":"email"}', '{"staff_role":"printer_agent"}', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- Insertar perfiles en public.profiles
@@ -88,39 +83,53 @@ INSERT INTO public.profiles (
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Simular usuario Administrador (Rosa Morales)
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
-
 SELECT results_eq(
-    $$ SELECT count(*)::integer FROM public.profiles $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
+    SELECT count(*)::integer FROM public.profiles;
+    $$,
     ARRAY[4],
     'Administrador debe ver los 4 perfiles de su restaurante'
 );
 
 SELECT results_eq(
-    $$ SELECT count(*)::integer FROM public.dining_rooms $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
+    SELECT count(*)::integer FROM public.dining_rooms;
+    $$,
     ARRAY[3],
     'Debe ver exactamente los 3 salones del restaurante'
 );
 
 SELECT results_eq(
-    $$ SELECT count(*)::integer FROM public.restaurant_tables $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
+    SELECT count(*)::integer FROM public.restaurant_tables;
+    $$,
     ARRAY[80],
     'Debe ver exactamente las 80 mesas configuradas'
 );
 
 SELECT results_eq(
-    $$ SELECT count(*)::integer FROM public.menu_categories $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
+    SELECT count(*)::integer FROM public.menu_categories;
+    $$,
     ARRAY[9],
     'Debe ver las 9 categorías oficiales'
 );
 
 -- Simular usuario Mozo (Carlos Sánchez)
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
-
 SELECT results_eq(
-    $$ SELECT count(*)::integer FROM public.profiles $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
+    SELECT count(*)::integer FROM public.profiles;
+    $$,
     ARRAY[1],
     'Mozo solo debe ver su propio perfil en public.profiles'
 );
@@ -131,6 +140,8 @@ SELECT results_eq(
 -- El mozo no debe ver variantes con price_needs_validation = true ni is_orderable = false
 SELECT is_empty(
     $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
     SELECT *
     FROM public.product_variants
     WHERE price_needs_validation = true
@@ -140,11 +151,10 @@ SELECT is_empty(
 );
 
 -- El administrador sí debe verlas todas
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
-
 SELECT isnt_empty(
     $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
     SELECT *
     FROM public.product_variants
     WHERE price_needs_validation = true;
@@ -156,30 +166,37 @@ SELECT isnt_empty(
 -- 6. ZERO-STALE-TRUST: USUARIOS DESACTIVADOS OBTIENEN 0 FILAS
 -- ------------------------------------------------------------------------------
 -- Desactivar temporalmente al mozo
-SET LOCAL ROLE postgres;
 UPDATE public.profiles
 SET active = false
 WHERE user_id = '00000000-0000-0000-0000-000000000020';
 
 -- Intentar leer como mozo desactivado
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
-
 SELECT is_empty(
-    $$ SELECT * FROM public.profiles $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
+    SELECT * FROM public.profiles;
+    $$,
     'Mozo inactivo no debe ver ninguna fila en profiles (ni siquiera la propia)'
 );
 SELECT is_empty(
-    $$ SELECT * FROM public.menu_categories $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
+    SELECT * FROM public.menu_categories;
+    $$,
     'Mozo inactivo no debe ver categorías'
 );
 SELECT is_empty(
-    $$ SELECT * FROM public.products $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
+    SELECT * FROM public.products;
+    $$,
     'Mozo inactivo no debe ver productos'
 );
 
 -- Restaurar mozo activo
-SET LOCAL ROLE postgres;
 UPDATE public.profiles
 SET active = true
 WHERE user_id = '00000000-0000-0000-0000-000000000020';
@@ -187,8 +204,6 @@ WHERE user_id = '00000000-0000-0000-0000-000000000020';
 -- ------------------------------------------------------------------------------
 -- 7. RESTRICCIONES CHECK Y REGLAS DE NEGOCIO (VALIDAR, Precios, etc.)
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE postgres;
-
 -- Intento de insertar variante ordenable con price_needs_validation = true (debe fallar)
 SELECT throws_ok(
     $$
@@ -264,12 +279,11 @@ SELECT throws_ok(
 -- ------------------------------------------------------------------------------
 -- 9. RPCs ADMINISTRATIVAS DE CARTA Y CONFIRMACIÓN DE PRECIO
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
-
 -- Confirmar precio de la variante 'Fuente' de Caballa saltpresa (era VALIDAR S/ 100)
 SELECT lives_ok(
     $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
     SELECT public.admin_confirm_validated_price('00000000-0000-0000-0200-000000000018', 110.00);
     $$,
     'Admin debe poder confirmar precio VALIDAR'
@@ -288,14 +302,16 @@ SELECT results_eq(
 
 -- Verificar que authenticated no puede leer directamente audit_logs
 SELECT throws_ok(
-    $$ SELECT * FROM public.audit_logs $$,
+    $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000010", "role": "authenticated"}';
+    SELECT * FROM public.audit_logs;
+    $$,
     'permission denied',
     'Rol authenticated no debe tener permiso SELECT en audit_logs en Fase 2'
 );
 
 -- Como postgres, verificar que la acción administrativa se registró en audit_logs
-SET LOCAL ROLE postgres;
-
 SELECT results_eq(
     $$
     SELECT action
@@ -309,11 +325,10 @@ SELECT results_eq(
 );
 
 -- Mozo intentando ejecutar RPC administrativa (debe fallar)
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
-
 SELECT throws_ok(
     $$
+    SET LOCAL ROLE authenticated;
+    SET LOCAL "request.jwt.claims" = '{"sub": "00000000-0000-0000-0000-000000000020", "role": "authenticated"}';
     SELECT public.admin_create_category('Postres', 10);
     $$,
     'No autorizado',
@@ -323,8 +338,6 @@ SELECT throws_ok(
 -- ------------------------------------------------------------------------------
 -- 10. RE-EJECUCIÓN DE SEMILLA IDEMPOTENTE Y NO DESTRUCTIVA
 -- ------------------------------------------------------------------------------
-SET LOCAL ROLE postgres;
-
 -- Simulación de re-ejecución de semilla con ON CONFLICT DO NOTHING sobre la fila modificada
 INSERT INTO public.product_variants (
     id, restaurant_id, product_id, variant_name, price, price_needs_validation, is_orderable, is_active, display_order
