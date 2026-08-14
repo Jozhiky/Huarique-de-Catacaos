@@ -45,7 +45,7 @@ jobs:
           supabase test db 2>&1 | tee pgtap.log
           EXIT_CODE=${PIPESTATUS[0]}
           if [ $EXIT_CODE -ne 0 ]; then
-            grep -v -E "Pulling|Waiting|Download|Verifying|Digest|Status:|already being used" pgtap.log | head -n 25 | while IFS= read -r line; do
+            grep -A 25 "Failed test" pgtap.log | head -n 25 | while IFS= read -r line; do
               echo "::error title=pgTAP::$line"
             done
           fi
