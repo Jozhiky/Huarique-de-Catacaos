@@ -166,9 +166,40 @@ GRANT SELECT ON public.modifier_groups TO authenticated;
 GRANT SELECT ON public.modifiers TO authenticated;
 GRANT SELECT ON public.product_modifier_groups TO authenticated;
 
+-- Concesión de ejecución en las 18 RPCs administrativas a 'authenticated'
+DO $$
+DECLARE
+    r text;
+    admin_rpcs text[] := ARRAY[
+        'admin_create_category(text, integer)',
+        'admin_update_category(uuid, text, integer)',
+        'admin_reorder_categories(uuid[])',
+        'admin_toggle_category_active(uuid, boolean)',
+        'admin_create_product(uuid, text, text, integer)',
+        'admin_update_product(uuid, text, text, integer)',
+        'admin_change_product_category(uuid, uuid)',
+        'admin_reorder_products(uuid, uuid[])',
+        'admin_toggle_product_active(uuid, boolean)',
+        'admin_toggle_product_availability(uuid, boolean)',
+        'admin_create_product_variant(uuid, text, numeric, integer)',
+        'admin_update_product_variant(uuid, text, integer)',
+        'admin_reorder_product_variants(uuid, uuid[])',
+        'admin_toggle_variant_active(uuid, boolean)',
+        'admin_toggle_variant_orderable(uuid, boolean)',
+        'admin_update_variant_price(uuid, numeric)',
+        'admin_confirm_validated_price(uuid, numeric)',
+        'admin_set_product_availability_rules(uuid, integer[])'
+    ];
+BEGIN
+    FOREACH r IN ARRAY admin_rpcs LOOP
+        EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO authenticated;', r);
+    END LOOP;
+END $$;
+
 -- NOTA DE HARDENING DE FASE 2:
 -- Las tablas transaccionales y operativas (orders, order_revisions, order_items,
 -- order_item_modifiers, payments, printers, printer_agents, print_jobs,
 -- ingredients, recipe_items, suppliers, purchases, purchase_items,
 -- inventory_movements, inventory_balances, audit_logs, idempotency_records)
 -- NO reciben permisos SELECT en esta fase. Se concederán progresivamente en sus fases respectivas.
+
