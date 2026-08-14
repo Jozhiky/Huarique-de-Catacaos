@@ -372,19 +372,26 @@ TOTAL DE PLATOS: 3
 REVISIÓN DEL PEDIDO: 2
 ```
 
-### Requisitos técnicos
+### Requisitos técnicos y ciclo de vida de la cola
 
 - Papel térmico de 80 mm.
 - ESC/POS por TCP/IP, preferentemente puerto 9100.
-- `print_jobs.idempotency_key` único.
-- Reclamo atómico de trabajo para impedir dos impresiones.
-- Máximo tres reintentos automáticos con espera incremental.
-- Reimpresión manual marcada como `COPIA`.
+- Estados estrictos de la cola de impresión (`public.print_jobs.status`):
+  1. `pending`: Trabajo creado en base de datos, listo para ser reclamado.
+  2. `claimed`: Reclamado atómicamente por un agente local con `claim_token` y `claim_expires_at` (lease de 30 segundos).
+  3. `sent_unconfirmed`: Enviado por socket TCP a la impresora pero pendiente de confirmación física.
+  4. `printed_assumed`: Impresión asumida exitosa tras confirmación de socket o timeout sin error de transporte.
+  5. `printed_confirmed`: Confirmado físicamente por el agente de impresión.
+  6. `failed`: Fallo de conexión o papel agotado tras agotar reintentos.
+  7. `cancelled`: Trabajo anulado por superación de comanda o intervención administrativa.
+- Restricción de unicidad estricta: `UNIQUE (order_revision_id, job_type, destination_printer_id)` con `order_revision_id NOT NULL`.
+- Reclamo atómico de trabajo con lease (`claim_token`, `claimed_by`, `claim_expires_at`) para impedir doble impresión en concurrencia.
+- Semántica de impresión física _at-least-once_: todo trabajo reintentado o recuperado tras timeout se marca obligatoriamente con la leyenda `*** COPIA / POSIBLE DUPLICADO ***`.
+- Máximo tres reintentos automáticos con espera incremental exponencial.
 - `printed_at`, `printer_id`, `attempt_count` y error final auditables.
-- Latido del agente local cada 30 segundos.
-- Alerta si el agente no reporta durante más de 90 segundos.
+- Latido del agente local cada 30 segundos; alerta si el agente no reporta durante más de 90 segundos.
 - Adaptador de impresora simulada para pruebas automatizadas.
-- Nunca colocar el secreto de Supabase en el navegador; solamente en el agente local protegido.
+- Principio de menor privilegio: el frontend nunca accede al hardware; el agente local opera bajo rol `printer_agent` sin exponer `service_role`.
 
 ---
 
@@ -395,7 +402,7 @@ Todas las tablas transaccionales deben llevar `restaurant_id`, `created_at`, `up
 | Tabla                     | Propósito                                           |
 | ------------------------- | --------------------------------------------------- |
 | `restaurants`             | Negocio y configuración general.                    |
-| `profiles`                | Perfil, rol, estado y relación con Auth.            |
+| `profiles`                | Perfil, rol (`staff_role`), estado y relación Auth. |
 | `dining_rooms`            | Los tres salones.                                   |
 | `restaurant_tables`       | Mesas, número, capacidad, posición y estado.        |
 | `shifts`                  | Apertura/cierre por fecha y usuario.                |
@@ -412,96 +419,79 @@ Todas las tablas transaccionales deben llevar `restaurant_id`, `created_at`, `up
 | `purchase_items`          | Detalle de insumos comprados.                       |
 | `inventory_movements`     | Diario inmutable de entradas/salidas/mermas.        |
 | `inventory_balances`      | Saldo materializado actualizado transaccionalmente. |
-| `orders`                  | Cabecera de pedido y mesa.                          |
-| `order_revisions`         | Cada envío inicial o adicional.                     |
+| `orders`                  | Cabecera de pedido, mesa y submission_id único.     |
+| `order_revisions`         | Cada envío inicial o adicional (revisión 1..N).     |
 | `order_items`             | Ítems con nombre y precio congelados.               |
 | `order_item_modifiers`    | Opciones y recargos congelados.                     |
 | `payments`                | Pagos por método y usuario.                         |
-| `print_jobs`              | Cola idempotente de impresión.                      |
+| `print_jobs`              | Cola idempotente de impresión con lease y estados.  |
 | `printer_agents`          | Impresoras, latidos y estado.                       |
 | `audit_logs`              | Acciones sensibles y valores antes/después.         |
 
-### Restricciones importantes
+### Restricciones e Integridad de Datos
 
-- Un número de mesa no se repite dentro del mismo salón.
-- Una mesa no puede tener dos pedidos abiertos, salvo una función explícita de cuentas separadas.
-- `order_items` conserva `product_name_snapshot`, `variant_name_snapshot`, `unit_price_snapshot` y `tax_snapshot` si se añade impuesto.
-- Un pago debe ser positivo.
-- La suma de pagos debe coincidir con el total antes de cerrar.
-- El total se calcula en servidor; el cliente no es fuente de verdad.
-- `inventory_movements` es append-only.
-- Productos y usuarios transaccionalmente usados se desactivan; no se borran.
-- Índices compuestos por `restaurant_id`, estado y fecha en consultas operativas.
-- Índices parciales para pedidos abiertos y tareas de impresión pendientes.
-- Índices sobre columnas usadas por políticas RLS.
+- `orders`: `UNIQUE (restaurant_id, client_submission_id)` para garantizar idempotencia de envíos desde tablets.
+- `print_jobs`: `UNIQUE (order_revision_id, job_type, destination_printer_id)` con `order_revision_id NOT NULL`.
+- Un número de mesa no se repite dentro del mismo salón (`UNIQUE (dining_room_id, table_number)`).
+- Una mesa no puede tener dos pedidos abiertos simultáneos.
+- `order_items` conserva `product_name_snapshot`, `variant_name_snapshot`, `unit_price_snapshot` congelados al momento de ordenar.
+- Un pago debe ser positivo; la suma de pagos debe coincidir con el total antes de cerrar.
+- El total se calcula en servidor mediante funciones transaccionales; el cliente no es fuente de verdad.
+- `inventory_movements` es estrictamente append-only.
+- Productos y usuarios transaccionalmente usados se desactivan (`active = false`); nunca se borran físicamente.
 
-### Operaciones transaccionales recomendadas
+### Operaciones transaccionales RPC
 
-- `submit_order(order_id, idempotency_key)`.
-- `append_order_revision(order_id, items, idempotency_key)`.
-- `cancel_order_item(item_id, reason, approver_id)`.
-- `request_bill(order_id)`.
-- `close_order(order_id, payments, idempotency_key)`.
-- `record_purchase(purchase_payload, idempotency_key)`.
-- `adjust_inventory(ingredient_id, quantity, reason, approver_id)`.
-- `claim_print_job(agent_id)`.
-- `ack_print_job(job_id, result)`.
+Todas las operaciones RPC transaccionales deben declararse con `SECURITY DEFINER SET search_path = ''`, verificando `profiles.active = true` y autorización de rol en base de datos:
 
-Estas operaciones críticas deben ejecutarse en una sola transacción de servidor.
+- `submit_order(p_restaurant_id, p_table_id, p_items, p_client_submission_id)`.
+- `append_order_revision(p_order_id, p_items, p_client_submission_id)`.
+- `cancel_order_item(p_item_id, p_reason, p_approver_id, p_stage)`.
+- `request_bill(p_order_id)`.
+- `close_order(p_order_id, p_payments, p_client_submission_id)`.
+- `record_purchase(p_purchase_payload, p_client_submission_id)`.
+- `adjust_inventory(p_ingredient_id, p_quantity, p_reason, p_approver_id)`.
+- `claim_print_job(p_agent_id, p_lease_seconds)`.
+- `ack_print_job(p_job_id, p_claim_token, p_status, p_error)`.
 
 ---
 
-## 12. Seguridad de Supabase/PostgreSQL
+## 12. Seguridad de Supabase/PostgreSQL y RLS
 
-- Habilitar RLS en toda tabla expuesta.
-- Conceder acceso a la Data API de manera explícita; no asumir exposición automática.
-- Combinar `TO authenticated` con condiciones reales de restaurante y rol.
-- No usar `user_metadata` para autorizar.
-- Usar `app_metadata` administrado por servidor o tablas de perfil verificadas.
-- Las políticas `UPDATE` deben incluir `USING` y `WITH CHECK`, además de una política `SELECT` compatible.
-- Las vistas expuestas deben usar `security_invoker = true`.
-- Evitar `SECURITY DEFINER`; si es indispensable, ubicar la función en un esquema privado, comprobar `auth.uid()` y revocar `EXECUTE` público.
-- No exponer `service_role` ni secretos en variables `VITE_*`.
-- Limitar funciones administrativas por rol y registrar auditoría.
-- Filtrar consultas por `restaurant_id`, incluso si RLS ya aplica el filtro.
-- Ejecutar asesores de seguridad/rendimiento antes de cerrar cada migración.
-- Probar RLS como dueña, cajero, mozo y usuario no autenticado.
-- Probar acceso cruzado con un segundo restaurante ficticio para evitar IDOR/BOLA.
+- Habilitar RLS obligatoriamente en toda tabla del esquema public:
+  `ALTER TABLE public.<tabla> ENABLE ROW LEVEL SECURITY;`
+- Conceder acceso a la Data API de manera explícita: `GRANT SELECT TO authenticated` únicamente en tablas/vistas que el frontend requiera consultar directamente.
+- Mantener revocados `INSERT`, `UPDATE` y `DELETE` directos en tablas transaccionales (`orders`, `order_items`, `print_jobs`, `inventory_movements`). Toda mutación se ejecuta mediante RPCs transaccionales protegidas.
+- Revocar privilegios predeterminados de ejecución de funciones:
+  `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated;`
+- Conceder `GRANT EXECUTE ON FUNCTION public.<funcion> TO authenticated;` de manera individual y explícita.
+- JWT y Claims: conservar el claim estándar `role = authenticated`; almacenar el rol de aplicación en el claim personalizado `staff_role = admin | cashier | waiter | printer_agent`.
+- Desactivación de usuario: si `profiles.active = false`, Edge Functions, Hooks, RLS y RPCs transaccionales bloquean inmediatamente toda operación.
+- No exponer `service_role` ni secretos en variables de entorno del cliente (`VITE_*`).
 
 ---
 
-## 13. Reglas de inventario
+## 13. Reglas de inventario y anulaciones
 
-### Fórmula
+### Fórmula fundamental
 
 ```text
 stock inicial + compras - consumo teórico - mermas +/- ajustes = stock esperado
 ```
 
-### Ejemplo de pollo
+### Protocolo estricto de anulación y reversión
 
-```text
-Stock inicial:       30.000 kg
-Compra:              20.000 kg
-Consumo por recetas: 32.000 kg
-Merma:                2.000 kg
-Stock esperado:      16.000 kg
-Conteo físico:       15.000 kg
-Diferencia:          -1.000 kg
-```
-
-### Normas
-
-- Cada ingrediente tiene una unidad base: kg, g, l, ml o unidad.
-- Las conversiones deben ser explícitas.
-- Cada variante de plato puede tener receta distinta.
-- El consumo se genera una sola vez por revisión de pedido.
-- Una reversión genera otro movimiento; no edita el movimiento original.
-- Una anulación después de preparar se convierte en merma.
-- El conteo físico genera un ajuste con responsable y motivo.
-- Alertas por stock bajo se configuran por ingrediente.
-- El historial debe mostrar fecha, usuario, origen y saldo resultante.
-- El costo promedio es opcional para la primera versión; no bloquear el piloto por contabilidad avanzada.
+1. **Anulación antes de preparar (`before_prep`):**
+   - El plato no se preparó; los insumos no se gastaron físicamente.
+   - Movimiento: `cancellation_reversal` (+Q). Reintegra el stock al saldo disponible.
+2. **Anulación después de preparar (`after_prep`):**
+   - El plato ya se cocinó; los insumos se consumieron físicamente.
+   - Par de reclasificación atómica compartiendo `reclassification_group_id`:
+     1. `cancellation_reversal` (+Q): revierte contablemente el consumo del pedido cancelado.
+     2. `spoilage_waste` (-Q): registra la pérdida física como merma justificada.
+   - Efecto neto en el balance del insumo = 0; saldo acumulado queda en -Q (merma auditada).
+3. **Conteo físico y ajustes:**
+   - El conteo físico genera un movimiento de `physical_count_adjustment` con responsable, motivo y registro antes/después.
 
 ---
 

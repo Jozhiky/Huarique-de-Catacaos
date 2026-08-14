@@ -20,11 +20,11 @@ jobs:
         with:
           version: 11.1.2
 
-      - name: Configurar Node.js 24 LTS
+      - name: Configurar Node.js 24.14.1 LTS
         uses: actions/setup-node@v4
         with:
-          node-version: 24.x
-          cache: 'pnpm'
+          node-version: "24.14.1"
+          cache: "pnpm"
 
       - name: Instalar dependencias con lockfile congelado
         run: pnpm install --frozen-lockfile

@@ -10,11 +10,15 @@ describe('Aplicación Principal y Criterios de Accesibilidad — El Huarique de 
     expect(logo).toHaveAttribute('src', '/brand/huarique-logo-transparente.png');
   });
 
-  it('muestra las pestañas de navegación para salones y mesas con roles de botón', () => {
+  it('muestra las pestañas de navegación táctiles con roles de botón (Mesas, Pedidos, Caja, Stock, Panel)', () => {
     render(<App />);
     const nav = screen.getByLabelText('Pestañas principales');
     expect(nav).toBeInTheDocument();
-    expect(within(nav).getByText('Salones y Mesas')).toBeInTheDocument();
+    expect(within(nav).getByText('Mesas')).toBeInTheDocument();
+    expect(within(nav).getByText('Pedidos')).toBeInTheDocument();
+    expect(within(nav).getByText('Caja')).toBeInTheDocument();
+    expect(within(nav).getByText('Stock')).toBeInTheDocument();
+    expect(within(nav).getByText('Panel')).toBeInTheDocument();
   });
 
   it('renderiza las mesas como botones interactivos y accesibles con aria-label', () => {
@@ -55,7 +59,7 @@ describe('Aplicación Principal y Criterios de Accesibilidad — El Huarique de 
   it('permite ingresar dígitos en el teclado numérico en la pestaña de pedidos', () => {
     render(<App />);
     const nav = screen.getByLabelText('Pestañas principales');
-    const pedidosTab = within(nav).getByText('Toma de Pedidos');
+    const pedidosTab = within(nav).getByText('Pedidos');
     fireEvent.click(pedidosTab);
 
     // Debe mostrar el teclado numérico

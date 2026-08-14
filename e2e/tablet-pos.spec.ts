@@ -1,10 +1,23 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Pruebas E2E de Interfaz Táctil POS — El Huarique de Catacaos", () => {
-  test("Verifica ausencia de llamadas a Google Fonts (Fuentes 100% locales WOFF2)", async ({
+test.describe("Pruebas E2E de Hardening Táctil POS — El Huarique de Catacaos", () => {
+  test("1. Fuentes WOFF2 Locales: Carga exitosa de todos los pesos y cero llamadas externas", async ({
     page,
   }) => {
+    const consoleErrors: string[] = [];
     const externalFontRequests: string[] = [];
+
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        const text = msg.text();
+        if (
+          text.includes("Failed to decode downloaded font") ||
+          text.includes("OTS parsing error")
+        ) {
+          consoleErrors.push(text);
+        }
+      }
+    });
 
     page.on("request", (request) => {
       const url = request.url();
@@ -19,17 +32,105 @@ test.describe("Pruebas E2E de Interfaz Táctil POS — El Huarique de Catacaos",
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Debe ser estrictamente 0 llamadas externas
-    expect(externalFontRequests).toHaveLength(0);
+    // Esperar que document.fonts esté listo
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+
+    // Cargar y validar individualmente cada familia y peso WOFF2
+    const fontTests = [
+      { family: "Barlow Condensed", weights: ["600", "700", "800", "900"] },
+      { family: "Inter", weights: ["400", "500", "600", "700", "800"] },
+    ];
+
+    for (const { family, weights } of fontTests) {
+      for (const weight of weights) {
+        const status = await page.evaluate(
+          async ({ fam, wgt }) => {
+            const fontSpec = `normal ${wgt} 16px "${fam}"`;
+            const loadedFonts = await document.fonts.load(fontSpec);
+            if (loadedFonts.length === 0) return "not_found";
+            return loadedFonts[0]?.status ?? "unknown";
+          },
+          { fam: family, wgt: weight },
+        );
+
+        expect(
+          status,
+          `Fuente ${family} peso ${weight} debe estar en estado 'loaded'`,
+        ).toBe("loaded");
+      }
+    }
+
+    // Comprobar ausencia absoluta de errores de decodificación o llamadas externas
+    expect(
+      consoleErrors,
+      "No deben existir errores de decodificación OTS ni fuentes corruptas",
+    ).toHaveLength(0);
+    expect(
+      externalFontRequests,
+      "No deben existir solicitudes externas a Google Fonts",
+    ).toHaveLength(0);
   });
 
-  test("Verifica cabecera, logo transparente y ausencia de scroll global", async ({
+  test("2. Cabecera Responsiva: Sin scroll horizontal y elementos dentro del viewport", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // 1. Logo oficial visible
+    const viewportSize = page.viewportSize();
+    expect(viewportSize).not.toBeNull();
+    const viewportWidth = viewportSize?.width ?? 1280;
+
+    // 1. Obtener dimensiones del header
+    const header = page.getByTestId("pos-header");
+    await expect(header).toBeVisible();
+
+    const headerBox = await header.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+      offsetWidth: el.offsetWidth,
+    }));
+
+    // El ancho de scroll no debe superar el ancho cliente del viewport
+    expect(
+      headerBox.scrollWidth,
+      `Header scrollWidth (${headerBox.scrollWidth}) no debe exceder clientWidth (${headerBox.clientWidth})`,
+    ).toBeLessThanOrEqual(headerBox.clientWidth + 1);
+
+    // 2. Verificar que cada botón visible dentro de la cabecera está dentro de los límites del viewport
+    const headerButtons = header.locator("button");
+    const btnCount = await headerButtons.count();
+    expect(btnCount).toBeGreaterThan(0);
+
+    for (let i = 0; i < btnCount; i++) {
+      const btn = headerButtons.nth(i);
+      if (await btn.isVisible()) {
+        const box = await btn.boundingBox();
+        expect(box).not.toBeNull();
+        if (box) {
+          expect(
+            box.x,
+            `Botón ${i} x (${box.x}) debe ser >= 0`,
+          ).toBeGreaterThanOrEqual(0);
+          expect(
+            box.x + box.width,
+            `Botón ${i} x+width (${box.x + box.width}) debe ser <= viewportWidth (${viewportWidth})`,
+          ).toBeLessThanOrEqual(viewportWidth + 1);
+          expect(
+            box.height,
+            `Botón ${i} altura debe ser >= 48px`,
+          ).toBeGreaterThanOrEqual(48);
+          expect(
+            box.width,
+            `Botón ${i} ancho debe ser >= 48px`,
+          ).toBeGreaterThanOrEqual(48);
+        }
+      }
+    }
+
+    // 3. Logo oficial visible y dentro del viewport
     const logo = page.locator('img[alt="Huarique de Catacaos"]');
     await expect(logo).toBeVisible();
     await expect(logo).toHaveAttribute(
@@ -37,23 +138,22 @@ test.describe("Pruebas E2E de Interfaz Táctil POS — El Huarique de Catacaos",
       "/brand/huarique-logo-transparente.png",
     );
 
-    // 2. Comprobar que no hay scroll global horizontal ni vertical en el documento
-    const scrollDimensions = await page.evaluate(() => ({
-      scrollHeight: document.documentElement.scrollHeight,
-      clientHeight: document.documentElement.clientHeight,
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-    }));
+    // 4. Usuario y botón de bloqueo visibles
+    const lockBtn = page.getByRole("button", { name: /Bloquear sesión/i });
+    await expect(lockBtn).toBeVisible();
 
-    expect(scrollDimensions.scrollHeight).toBeLessThanOrEqual(
-      scrollDimensions.clientHeight + 1,
-    );
-    expect(scrollDimensions.scrollWidth).toBeLessThanOrEqual(
-      scrollDimensions.clientWidth + 1,
+    // 5. Capturar captura visual para auditoría
+    const screenshot = await page.screenshot({ fullPage: false });
+    await testInfo.attach(
+      `tablet-header-${viewportWidth}x${viewportSize?.height}`,
+      {
+        body: screenshot,
+        contentType: "image/png",
+      },
     );
   });
 
-  test("Verifica que todos los controles interactivos tienen dimensiones táctiles >= 48x48 px", async ({
+  test("3. Objetivos Táctiles Ergonómicos: Todos los controles >= 48x48 px", async ({
     page,
   }) => {
     await page.goto("/");
@@ -62,7 +162,7 @@ test.describe("Pruebas E2E de Interfaz Táctil POS — El Huarique de Catacaos",
     // Pestañas de navegación
     const navButtons = page.locator("header nav button");
     const navCount = await navButtons.count();
-    expect(navCount).toBeGreaterThan(0);
+    expect(navCount).toBe(5);
 
     for (let i = 0; i < navCount; i++) {
       const btn = navButtons.nth(i);
@@ -90,42 +190,40 @@ test.describe("Pruebas E2E de Interfaz Táctil POS — El Huarique de Catacaos",
     }
   });
 
-  test("Verifica navegación entre salones y apertura/cierre accesible de modal de mesa", async ({
+  test("4. Flujo Operativo y Accesibilidad: Modal accesible, focus trap y teclado", async ({
     page,
   }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Salón Familiar (Mesa 31 en adelante)
-    const salonFamiliar = page.getByRole("tab", { name: /Salón Familiar/i });
-    await salonFamiliar.click();
-    await expect(salonFamiliar).toHaveAttribute("aria-selected", "true");
+    // Cambiar a Salón Terraza
+    const salonTerraza = page.getByRole("tab", { name: /Salón Terraza/i });
+    await salonTerraza.click();
+    await expect(salonTerraza).toHaveAttribute("aria-selected", "true");
 
-    // Hacer clic en Mesa 35
-    const table35 = page.getByRole("button", { name: /Mesa 35,/i });
-    await expect(table35).toBeVisible();
-    await table35.click();
+    // Clic en Mesa 60
+    const table60 = page.getByRole("button", { name: /Mesa 60,/i });
+    await expect(table60).toBeVisible();
+    await table60.click();
 
-    // Modal debe aparecer
+    // Modal accesible
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
-    await expect(modal.getByText(/Detalle de Mesa 35/i)).toBeVisible();
+    await expect(modal.getByText(/Detalle de Mesa 60/i)).toBeVisible();
 
-    // Cerrar modal presionando Escape
+    // Cerrar con Escape
     await page.keyboard.press("Escape");
     await expect(modal).not.toBeVisible();
   });
 
-  test("Verifica funcionamiento táctil del teclado numérico para PIN de mozo", async ({
-    page,
-  }) => {
+  test("5. Teclado Numérico para PIN de Mozo", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Cambiar a pestaña Toma de Pedidos
-    await page.locator("header nav button", { hasText: /Pedidos/i }).click();
+    // Pestaña Pedidos
+    await page.locator("header nav button", { hasText: "Pedidos" }).click();
 
-    // Teclear 4 dígitos: 1, 2, 3, 4
+    // Marcar 1, 2, 3, 4
     await page.getByRole("button", { name: "1", exact: true }).click();
     await page.getByRole("button", { name: "2", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();

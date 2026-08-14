@@ -12,7 +12,7 @@ import {
   type TableStatus,
   type PrintJobStatus,
 } from "@huarique/domain";
-import { Users, Layers, ShieldCheck } from "lucide-react";
+import { Users, Layers, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 
 interface SelectedTableState {
   number: number;
@@ -114,16 +114,6 @@ export const App: React.FC = () => {
         setPinValue("");
         alert("Sesión bloqueada por seguridad. Ingrese su PIN de mozo.");
       }}
-      headerRight={
-        <Button
-          variant="outline"
-          size="md"
-          className="text-xs bg-white/10 text-white border-brand-gold/40 hover:bg-white/20 min-h-[48px] min-w-[48px]"
-          onClick={() => setIsOnline(!isOnline)}
-        >
-          {isOnline ? "Simular Offline" : "Simular Online"}
-        </Button>
-      }
     >
       {/* Contenido según la pestaña activa */}
       {activeTab === "mesas" && (
@@ -379,6 +369,26 @@ export const App: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Botón Flotante de Desarrollo para Simular Conectividad (No ocupa espacio en la cabecera del POS) */}
+      <div className="fixed bottom-3 right-3 z-40">
+        <button
+          type="button"
+          onClick={() => setIsOnline(!isOnline)}
+          aria-label="Alternar simulación de conexión"
+          data-testid="toggle-offline-btn"
+          className="min-h-[48px] min-w-[48px] px-3 py-2 rounded-touch bg-brand-navy text-brand-gold border border-brand-gold/40 shadow-lg text-xs font-display font-bold flex items-center gap-1.5 hover:bg-[#072440] active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-brand-gold"
+        >
+          {isOnline ? (
+            <Wifi className="h-4 w-4 text-success" />
+          ) : (
+            <WifiOff className="h-4 w-4 text-warning" />
+          )}
+          <span>
+            {isOnline ? "Dev: Simular Offline" : "Dev: Volver Online"}
+          </span>
+        </button>
+      </div>
     </TabletShell>
   );
 };

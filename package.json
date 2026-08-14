@@ -8,11 +8,6 @@
     "node": ">=24.0.0",
     "pnpm": ">=11.0.0"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
   "scripts": {
     "dev": "pnpm --filter @huarique/web dev",
     "build": "pnpm -r build",
@@ -21,8 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "format": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "format:fix": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "format": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css,yaml,yml}\"",
+    "format:fix": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,yaml,yml}\""
   },
   "devDependencies": {
     "@eslint/js": "9.20.0",
